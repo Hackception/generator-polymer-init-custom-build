@@ -31,8 +31,8 @@ const htmlmin = require('posthtml-minifier');
 // const htmlMinifier = require('gulp-html-minifier');
 
 // Got problems? Try logging 'em
-const logging = require('plylog');
-logging.setVerbose();
+// const logging = require('plylog');
+// logging.setVerbose();
 
 // !!! IMPORTANT !!! //
 // Keep the global.config above any of the gulp-tasks that depend on it
@@ -155,6 +155,12 @@ function dependencies() {
 // and process them, and output bundled and unbundled versions of the project
 // with their own service workers
 gulp.task('default', gulp.series([
+  clean([global.config.build.rootDirectory]),
+  project.merge(source, dependencies),
+  project.serviceWorker
+]));
+
+gulp.task('war', gulp.series([
   clean([global.config.build.rootDirectory]),
   project.merge(source, dependencies),
   project.serviceWorker,
