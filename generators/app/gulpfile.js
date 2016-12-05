@@ -13,10 +13,26 @@
 const path = require('path');
 const gulp = require('gulp');
 const gulpif = require('gulp-if');
+const filter = require('gulp-filter');
+
+const eslint = require('gulp-eslint');
+const babel = require('gulp-babel');
+const uglify = require('gulp-uglify');
+const postcss  = require('gulp-postcss');
+const autoprefixer = require('autoprefixer');
+const stylelint = require('stylelint');
+const cssnano = require('cssnano');
+const posthtml  = require('gulp-posthtml');
+const posthtmlPostcss = require('posthtml-postcss');
+const htmlmin = require('posthtml-minifier');
+
+// TODO: Re-enable if css is broken out properly by polymer-build
+// const cssSlam = require('css-slam').gulp;
+// const htmlMinifier = require('gulp-html-minifier');
 
 // Got problems? Try logging 'em
-// const logging = require('plylog');
-// logging.setVerbose();
+const logging = require('plylog');
+logging.setVerbose();
 
 // !!! IMPORTANT !!! //
 // Keep the global.config above any of the gulp-tasks that depend on it
@@ -46,8 +62,14 @@ global.config = {
 // A few sample tasks are provided for you
 // A task should return either a WriteableStream or a Promise
 const clean = require('./gulp-tasks/clean.js');
-const images = require('./gulp-tasks/images.js');
+const nsp = require('./gulp-tasks/nsp.js');
 const project = require('./gulp-tasks/project.js');
+const war = require('./gulp-tasks/war.js');
+
+// Filters
+const jsFilter = filter('**/*.js', {restore: true});
+const cssFilter = filter('**/*.css', {restore: true});
+const htmlFilter = filter('**/*.html', {restore: true});
 
 // The source task will split all of your source files into one
 // big ReadableStream. Source files are those in src/** as well as anything
@@ -58,8 +80,39 @@ const project = require('./gulp-tasks/project.js');
 // which filters all images and runs them through imagemin
 function source() {
   return project.splitSource()
-    // Add your own build tasks here!
-    .pipe(gulpif('**/*.{png,gif,jpg,svg}', images.minify()))
+    // JS
+    .pipe(jsFilter)
+    .pipe(eslint())
+    .pipe(eslint.format())
+    .pipe(eslint.failAfterError())
+    .pipe(babel())
+    .pipe(uglify())
+    .pipe(jsFilter.restore)
+
+    // CSS
+    .pipe(cssFilter)
+    .pipe(postcss([
+      stylelint(),
+      autoprefixer(),
+      cssnano()
+    ]))
+    .pipe(cssFilter.restore)
+
+    //HTML
+    .pipe(htmlFilter)
+    .pipe(posthtml([
+      posthtmlPostcss([
+        stylelint(),
+        autoprefixer(),
+        cssnano()
+      ]),
+      htmlmin({
+        collapseWhitespace: true,
+        removeComments
+      })
+    ]))
+    .pipe(htmlFilter.restore)
+
     .pipe(project.rejoin()); // Call rejoin when you're finished
 }
 
@@ -69,6 +122,33 @@ function source() {
 // case you need it :)
 function dependencies() {
   return project.splitDependencies()
+    // JS
+    .pipe(jsFilter)
+    .pipe(babel())
+    .pipe(uglify())
+    .pipe(jsFilter.restore)
+
+    // CSS
+    .pipe(cssFilter)
+    .pipe(postcss([
+      autoprefixer(),
+      cssnano()
+    ]))
+    .pipe(cssFilter.restore)
+
+    //HTML
+    .pipe(htmlFilter)
+    .pipe(posthtml([
+      posthtmlPostcss([
+        autoprefixer(),
+        cssnano()
+      ]),
+      htmlmin({
+        collapseWhitespace: true,
+        removeComments
+      })
+    ]))
+    .pipe(htmlFilter.restore)
     .pipe(project.rejoin());
 }
 
@@ -76,7 +156,9 @@ function dependencies() {
 // and process them, and output bundled and unbundled versions of the project
 // with their own service workers
 gulp.task('default', gulp.series([
+  nsp.check,
   clean([global.config.build.rootDirectory]),
   project.merge(source, dependencies),
-  project.serviceWorker
+  project.serviceWorker,
+  war.create
 ]));

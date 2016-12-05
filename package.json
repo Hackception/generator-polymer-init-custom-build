@@ -25,8 +25,6 @@
     "yeoman-generator": "^0.23.0"
   },
   "devDependencies": {
-    "yeoman-test": "^1.0.0",
-    "yeoman-assert": "^2.0.0",
     "eslint": "^3.1.1",
     "eslint-config-xo-space": "^0.14.0",
     "gulp": "^3.9.0",
@@ -35,6 +33,7 @@
     "gulp-line-ending-corrector": "^1.0.1",
     "gulp-mocha": "^2.0.0",
     "gulp-plumber": "^1.0.0",
-    "gulp-nsp": "^2.1.0"
+    "yeoman-assert": "^2.0.0",
+    "yeoman-test": "^1.0.0"
   }
 }
