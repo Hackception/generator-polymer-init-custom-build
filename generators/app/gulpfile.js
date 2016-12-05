@@ -62,7 +62,6 @@ global.config = {
 // A few sample tasks are provided for you
 // A task should return either a WriteableStream or a Promise
 const clean = require('./gulp-tasks/clean.js');
-const nsp = require('./gulp-tasks/nsp.js');
 const project = require('./gulp-tasks/project.js');
 const war = require('./gulp-tasks/war.js');
 
@@ -156,7 +155,6 @@ function dependencies() {
 // and process them, and output bundled and unbundled versions of the project
 // with their own service workers
 gulp.task('default', gulp.series([
-  nsp.check,
   clean([global.config.build.rootDirectory]),
   project.merge(source, dependencies),
   project.serviceWorker,

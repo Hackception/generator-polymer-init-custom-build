@@ -21,7 +21,6 @@
     "gulp-babel": "^6.1.2",
     "gulp-eslint": "^3.0.1",
     "gulp-filter": "^4.0.0",
-    "gulp-nsp": "^2.1.0",
     "gulp-postcss": "^6.2.0",
     "gulp-posthtml": "^2.0.0",
     "gulp-rename": "^1.2.2",
