@@ -31,7 +31,7 @@
     "polymer-build": "^0.4.0",
     "posthtml-minifier": "^0.1.0",
     "posthtml-postcss": "^0.2.4",
-    "stylelint": "^7.6.0",
+    "stylelint": "^7.6.0"
   },
   "engines": {
     "node": "^6.9.1"
