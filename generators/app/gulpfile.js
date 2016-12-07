@@ -21,7 +21,7 @@ const uglify = require('gulp-uglify');
 const postcss  = require('gulp-postcss');
 const autoprefixer = require('autoprefixer');
 const stylelint = require('stylelint');
-const cssnano = require('cssnano');
+const cleanCSS = require('postcss-clean');
 const posthtml  = require('gulp-posthtml');
 const posthtmlPostcss = require('posthtml-postcss');
 const htmlmin = require('posthtml-minifier');
@@ -47,7 +47,7 @@ global.config = {
     // will not have its files combined (this is for projects using HTTP/2
     // server push). Using the 'both' option will create two output projects,
     // one for bundled and one for unbundled
-    bundleType: 'both'
+    bundleType: 'bundled'
   },
   // Path to your service worker, relative to the build root directory
   serviceWorkerPath: 'service-worker.js',
@@ -69,6 +69,12 @@ const war = require('./gulp-tasks/war.js');
 const jsFilter = filter('**/*.js', {restore: true});
 const cssFilter = filter('**/*.css', {restore: true});
 const htmlFilter = filter('**/*.html', {restore: true});
+const jsDepsFilter = filter('**/*.js', {restore: true});
+const cssDepsFilter = filter('**/*.css', {restore: true});
+const htmlDepsFilter = filter('**/*.html', {restore: true});
+
+// Config
+const cssOptions = {};
 
 // The source task will split all of your source files into one
 // big ReadableStream. Source files are those in src/** as well as anything
@@ -81,19 +87,22 @@ function source() {
   return project.splitSource()
     // JS
     .pipe(jsFilter)
-    .pipe(eslint())
-    .pipe(eslint.format())
-    .pipe(eslint.failAfterError())
-    .pipe(babel())
+    // .pipe(eslint())
+    // .pipe(eslint.format())
+    // .pipe(eslint.failAfterError())
+    .pipe(babel({
+      presets: ["es2015-script"],
+      plugins: ["array-includes"]
+    }))
     .pipe(uglify())
     .pipe(jsFilter.restore)
 
     // CSS
     .pipe(cssFilter)
     .pipe(postcss([
-      stylelint(),
+      // stylelint(),
       autoprefixer(),
-      cssnano()
+      cleanCSS(cssOptions)
     ]))
     .pipe(cssFilter.restore)
 
@@ -101,13 +110,13 @@ function source() {
     .pipe(htmlFilter)
     .pipe(posthtml([
       posthtmlPostcss([
-        stylelint(),
+        // stylelint({}),
         autoprefixer(),
-        cssnano()
+        cleanCSS(cssOptions)
       ]),
       htmlmin({
         collapseWhitespace: true,
-        removeComments
+        removeComments: true
       })
     ]))
     .pipe(htmlFilter.restore)
@@ -122,32 +131,32 @@ function source() {
 function dependencies() {
   return project.splitDependencies()
     // JS
-    .pipe(jsFilter)
+    .pipe(jsDepsFilter)
     .pipe(babel())
     .pipe(uglify())
-    .pipe(jsFilter.restore)
+    .pipe(jsDepsFilter.restore)
 
     // CSS
-    .pipe(cssFilter)
+    .pipe(cssDepsFilter)
     .pipe(postcss([
       autoprefixer(),
-      cssnano()
+      cleanCSS(cssOptions)
     ]))
-    .pipe(cssFilter.restore)
+    .pipe(cssDepsFilter.restore)
 
     //HTML
-    .pipe(htmlFilter)
+    .pipe(htmlDepsFilter)
     .pipe(posthtml([
       posthtmlPostcss([
         autoprefixer(),
-        cssnano()
+        cleanCSS(cssOptions)
       ]),
       htmlmin({
         collapseWhitespace: true,
-        removeComments
+        removeComments: true
       })
     ]))
-    .pipe(htmlFilter.restore)
+    .pipe(htmlDepsFilter.restore)
     .pipe(project.rejoin());
 }
 
