@@ -21,7 +21,7 @@ const polymerJSON = require(global.config.polymerJsonPath);
 const project = new polymer.PolymerProject(polymerJSON);
 const bundledPath = path.join(global.config.build.rootDirectory, global.config.build.bundledDirectory);
 const unbundledPath = path.join(global.config.build.rootDirectory, global.config.build.unbundledDirectory);
-const lintFilter = filter('**/*.(html|js)', {restore: true});
+const lintFilter = filter(['**/*.html', '**/*.js'], {restore: true});
 
 // This is the heart of polymer-build, and exposes much of the
 // work that Polymer CLI usually does for you
