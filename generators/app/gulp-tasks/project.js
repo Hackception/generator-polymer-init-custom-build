@@ -14,11 +14,14 @@ const path = require('path');
 const gulp = require('gulp');
 const mergeStream = require('merge-stream');
 const polymer = require('polymer-build');
+const eslint = require('gulp-eslint');
+const filter = require('gulp-filter');
 
 const polymerJSON = require(global.config.polymerJsonPath);
 const project = new polymer.PolymerProject(polymerJSON);
 const bundledPath = path.join(global.config.build.rootDirectory, global.config.build.bundledDirectory);
 const unbundledPath = path.join(global.config.build.rootDirectory, global.config.build.unbundledDirectory);
+const lintFilter = filter('**/*.(html|js)', {restore: true});
 
 // This is the heart of polymer-build, and exposes much of the
 // work that Polymer CLI usually does for you
@@ -33,7 +36,13 @@ const unbundledPath = path.join(global.config.build.rootDirectory, global.config
 // Source files are those in src/** as well as anything
 // added to the sourceGlobs property of polymer.json
 function splitSource() {
-  return project.sources().pipe(project.splitHtml());
+  return project.sources().
+    pipe(lintFilter).
+    pipe(eslint()).
+    pipe(eslint.format()).
+    pipe(eslint.failAfterError()).
+    pipe(lintFilter.restore).
+    pipe(project.splitHtml());
 }
 
 // Returns a ReadableStream of all the dependency files
