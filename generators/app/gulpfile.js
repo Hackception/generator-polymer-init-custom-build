@@ -15,7 +15,6 @@ const gulp = require('gulp');
 const gulpif = require('gulp-if');
 const filter = require('gulp-filter');
 
-const eslint = require('gulp-eslint');
 const babel = require('gulp-babel');
 const uglify = require('gulp-uglify');
 const postcss  = require('gulp-postcss');
@@ -87,9 +86,6 @@ function source() {
   return project.splitSource()
     // JS
     .pipe(jsFilter)
-    // .pipe(eslint())
-    // .pipe(eslint.format())
-    // .pipe(eslint.failAfterError())
     .pipe(babel({
       presets: ["es2015-script"],
       plugins: ["array-includes"]
