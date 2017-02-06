@@ -2,9 +2,11 @@
   "name": "polymer-starter-kit-custom-build",
   "version": "0.0.0",
   "description": "A starting point for Polymer 1.0 custom build apps",
-  "license": "http://polymer.github.io/LICENSE.txt",
+  "license": "BSD-3-Clause",
   "scripts": {
-    "build": "gulp"
+    "lint": "eslint . --ext js,html --ignore-path .gitignore",
+    "test": "npm run lint && polymer test",
+    "build": "gulp build"
   },
   "devDependencies": {
     "autoprefixer": "^6.5.3",
@@ -12,25 +14,22 @@
     "babel-plugin-array-includes": "^2.0.3",
     "babel-preset-es2015-script": "^1.1.0",
     "del": "^2.2.1",
+    "eslint": "^3.12.0",
+    "eslint-config-google": "^0.7.0",
     "eslint-plugin-chai-expect": "^1.1.1",
     "eslint-plugin-html": "^1.7.0",
     "gulp": "gulpjs/gulp#4.0",
     "gulp-babel": "^6.1.2",
-    "gulp-eslint": "^3.0.1",
-    "gulp-filter": "^4.0.0",
     "gulp-if": "^2.0.1",
+    "gulp-imagemin": "^3.1.0",
     "gulp-postcss": "^6.2.0",
     "gulp-posthtml": "^2.0.0",
-    "gulp-rename": "^1.2.2",
     "gulp-uglify": "^2.0.0",
-    "gulp-zip": "^3.2.0",
     "merge-stream": "^1.0.0",
-    "plylog": "^0.4.0",
-    "polymer-build": "^0.4.0",
+    "polymer-build": "^0.6.0",
     "postcss-clean": "^1.0.2",
     "posthtml-minifier": "^0.1.0",
-    "posthtml-postcss": "^0.2.4",
-    "stylelint": "^7.6.0"
+    "posthtml-postcss": "^0.2.4"
   },
   "engines": {
     "node": "^6.9.1"
