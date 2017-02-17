@@ -6,6 +6,12 @@ This template is a starting point for building apps using Polymer Starter Kit
 with a custom gulp process leveraging [polymer-build](https://github.com/Polymer/polymer-build),
 the library powering [Polymer CLI](https://github.com/Polymer/polymer-cli).
 
+### Known Issues
+
+- Windows Build Issue [Polymer/polymer-build#114](https://github.com/Polymer/polymer-build/issues/114)
+- CSS not splitting properly [Polymer/polymer-build#103](https://github.com/Polymer/polymer-build/pull/103) - The temp 
+fix is to handle the CSS within the HTML using something like CssSlam or PostHTML.
+
 ### Setup
 
 ##### Prerequisites
