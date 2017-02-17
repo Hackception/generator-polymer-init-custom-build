@@ -80,7 +80,7 @@ function build() {
               removeComments: true
             })
           ])))
-          .pipe(gulpif(/\.(png|gif|jpg|svg)$/, imagemin()))
+          // .pipe(gulpif(/\.(png|gif|jpg|svg)$/, imagemin()))
           .pipe(polymerProject.rejoinHtml());
 
         // Okay, now let's do the same to your dependencies
