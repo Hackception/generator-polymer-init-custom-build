@@ -16,7 +16,6 @@ const gulpif = require('gulp-if');
 const imagemin = require('gulp-imagemin');
 const mergeStream = require('merge-stream');
 const polymerBuild = require('polymer-build');
-const HtmlSplitter = polymerBuild.HtmlSplitter;
 
 const swPrecacheConfig = require('./sw-precache-config.js');
 const polymerJson = require('./polymer.json');
@@ -37,8 +36,8 @@ function build() {
   return new Promise((resolve, reject) => { // eslint-disable-line no-unused-vars
 
     // Lets create some inline code splitters in case you need them later in your build.
-    let sourcesStreamSplitter = new HtmlSplitter();
-    let dependenciesStreamSplitter = new HtmlSplitter();
+    let sourcesStreamSplitter = new polymerBuild.HtmlSplitter();
+    let dependenciesStreamSplitter = new polymerBuild.HtmlSplitter();
 
     // Okay, so first thing we do is clear the build directory
     console.log(`Deleting ${buildDirectory} directory...`);
