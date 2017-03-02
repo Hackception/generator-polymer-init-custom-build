@@ -10,168 +10,161 @@
 
 'use strict';
 
-const path = require('path');
+// TODO: add eslint to JS processing
+
+const del = require('del');
 const gulp = require('gulp');
 const gulpif = require('gulp-if');
-const filter = require('gulp-filter');
+const imagemin = require('gulp-imagemin');
+const mergeStream = require('merge-stream');
+const polymerBuild = require('polymer-build');
 
-const eslint = require('gulp-eslint');
 const babel = require('gulp-babel');
 const uglify = require('gulp-uglify');
 const postcss  = require('gulp-postcss');
 const autoprefixer = require('autoprefixer');
-const stylelint = require('stylelint');
+// const stylelint = require('stylelint');
 const cleanCSS = require('postcss-clean');
 const posthtml  = require('gulp-posthtml');
 const posthtmlPostcss = require('posthtml-postcss');
 const htmlmin = require('posthtml-minifier');
 
-// TODO: Re-enable if css is broken out properly by polymer-build
-// const cssSlam = require('css-slam').gulp;
-// const htmlMinifier = require('gulp-html-minifier');
+const swPrecacheConfig = require('./sw-precache-config.js');
+const polymerJson = require('./polymer.json');
+const polymerProject = new polymerBuild.PolymerProject(polymerJson);
+const buildDirectory = 'build';
 
-// Got problems? Try logging 'em
-// const logging = require('plylog');
-// logging.setVerbose();
-
-// !!! IMPORTANT !!! //
-// Keep the global.config above any of the gulp-tasks that depend on it
-global.config = {
-  polymerJsonPath: path.join(process.cwd(), 'polymer.json'),
-  build: {
-    rootDirectory: 'build',
-    bundledDirectory: 'bundled',
-    unbundledDirectory: 'unbundled',
-    // Accepts either 'bundled', 'unbundled', or 'both'
-    // A bundled version will be vulcanized and sharded. An unbundled version
-    // will not have its files combined (this is for projects using HTTP/2
-    // server push). Using the 'both' option will create two output projects,
-    // one for bundled and one for unbundled
-    bundleType: 'bundled'
-  },
-  // Path to your service worker, relative to the build root directory
-  serviceWorkerPath: 'service-worker.js',
-  // Service Worker precache options based on
-  // https://github.com/GoogleChrome/sw-precache#options-parameter
-  swPrecacheConfig: {
-    navigateFallback: '/index.html'
-  }
-};
-
-// Add your own custom gulp tasks to the gulp-tasks directory
-// A few sample tasks are provided for you
-// A task should return either a WriteableStream or a Promise
-const clean = require('./gulp-tasks/clean.js');
-const project = require('./gulp-tasks/project.js');
-const war = require('./gulp-tasks/war.js');
-
-// Filters
-const jsFilter = filter('**/*.js', {restore: true});
-const cssFilter = filter('**/*.css', {restore: true});
-const htmlFilter = filter('**/*.html', {restore: true});
-const jsDepsFilter = filter('**/*.js', {restore: true});
-const cssDepsFilter = filter('**/*.css', {restore: true});
-const htmlDepsFilter = filter('**/*.html', {restore: true});
-
-// Config
 const cssOptions = {};
 
-// The source task will split all of your source files into one
-// big ReadableStream. Source files are those in src/** as well as anything
-// added to the sourceGlobs property of polymer.json.
-// Because most HTML Imports contain inline CSS and JS, those inline resources
-// will be split out into temporary files. You can use gulpif to filter files
-// out of the stream and run them through specific tasks. An example is provided
-// which filters all images and runs them through imagemin
-function source() {
-  return project.splitSource()
-    // JS
-    .pipe(jsFilter)
-    // .pipe(eslint())
-    // .pipe(eslint.format())
-    // .pipe(eslint.failAfterError())
-    .pipe(babel({
-      presets: ["es2015-script"],
-      plugins: ["array-includes"]
-    }))
-    .pipe(uglify())
-    .pipe(jsFilter.restore)
-
-    // CSS
-    .pipe(cssFilter)
-    .pipe(postcss([
-      // stylelint(),
-      autoprefixer(),
-      cleanCSS(cssOptions)
-    ]))
-    .pipe(cssFilter.restore)
-
-    //HTML
-    .pipe(htmlFilter)
-    .pipe(posthtml([
-      posthtmlPostcss([
-        // stylelint({}),
-        autoprefixer(),
-        cleanCSS(cssOptions)
-      ]),
-      htmlmin({
-        collapseWhitespace: true,
-        removeComments: true
-      })
-    ]))
-    .pipe(htmlFilter.restore)
-
-    .pipe(project.rejoin()); // Call rejoin when you're finished
+/**
+ * Waits for the given ReadableStream
+ */
+function waitFor(stream) {
+  return new Promise((resolve, reject) => {
+    stream.on('end', resolve);
+    stream.on('error', reject);
+  });
 }
 
-// The dependencies task will split all of your bower_components files into one
-// big ReadableStream
-// You probably don't need to do anything to your dependencies but it's here in
-// case you need it :)
-function dependencies() {
-  return project.splitDependencies()
-    // JS
-    .pipe(jsDepsFilter)
-    .pipe(babel())
-    .pipe(uglify())
-    .pipe(jsDepsFilter.restore)
+function build() {
+  return new Promise((resolve, reject) => { // eslint-disable-line no-unused-vars
 
-    // CSS
-    .pipe(cssDepsFilter)
-    .pipe(postcss([
-      autoprefixer(),
-      cleanCSS(cssOptions)
-    ]))
-    .pipe(cssDepsFilter.restore)
+    // Lets create some inline code splitters in case you need them later in your build.
+    let sourcesStreamSplitter = new polymerBuild.HtmlSplitter();
+    let dependenciesStreamSplitter = new polymerBuild.HtmlSplitter();
 
-    //HTML
-    .pipe(htmlDepsFilter)
-    .pipe(posthtml([
-      posthtmlPostcss([
-        autoprefixer(),
-        cleanCSS(cssOptions)
-      ]),
-      htmlmin({
-        collapseWhitespace: true,
-        removeComments: true
+    // Okay, so first thing we do is clear the build directory
+    console.log(`Deleting ${buildDirectory} directory...`);
+    del([buildDirectory])
+      .then(() => {
+
+        // Let's start by getting your source files. These are all the files
+        // in your `src/` directory, or those that match your polymer.json
+        // "sources"  property if you provided one.
+        let sourcesStream = polymerProject.sources()
+
+          // If you want to optimize, minify, compile, or otherwise process
+          // any of your source code for production, you can do so here before
+          // merging your sources and dependencies together.
+          .pipe(gulpif(/\.(png|gif|jpg|svg)$/, imagemin()))
+
+          // The `sourcesStreamSplitter` created above can be added here to
+          // pull any inline styles and scripts out of their HTML files and
+          // into seperate CSS and JS files in the build stream. Just be sure
+          // to rejoin those files with the `.rejoin()` method when you're done.
+          .pipe(sourcesStreamSplitter.split())
+
+          // Uncomment these lines to add a few more example optimizations to your source files.
+          // .pipe(gulpif(/\.js$/, uglify())) // Install gulp-uglify to use
+          // .pipe(gulpif(/\.css$/, cssSlam())) // Install css-slam to use
+          // .pipe(gulpif(/\.html$/, htmlMinifier())) // Install gulp-html-minify to use
+
+          .pipe(gulpif(/\.js$/, babel({
+            presets: ["es2015-script"],
+            plugins: ["array-includes"]
+          })))
+          .pipe(gulpif(/\.js$/, uglify()))
+          // .pipe(gulpif(/\.css$/, cssSlam()))
+          .pipe(gulpif(/\.css$/, postcss([
+            // stylelint(),
+            autoprefixer(),
+            cleanCSS(cssOptions)
+          ])))
+          // .pipe(gulpif(/\.html$/, htmlMinifier()))
+          .pipe(gulpif(/\.html$/, posthtml([
+            posthtmlPostcss([
+              // stylelint({}),
+              autoprefixer(),
+              cleanCSS(cssOptions)
+            ]),
+            htmlmin({
+              collapseWhitespace: true,
+              removeComments: true
+            })
+          ])))
+          // Remember, you need to rejoin any split inline code when you're done.
+          .pipe(sourcesStreamSplitter.rejoin());
+
+
+        // Similarly, you can get your dependencies seperately and perform
+        // any dependency-only optimizations here as well.
+        let dependenciesStream = polymerProject.dependencies()
+          .pipe(dependenciesStreamSplitter.split())
+          // Add any dependency optimizations here.
+          .pipe(gulpif(/\.js$/, babel()))
+          .pipe(gulpif(/\.js$/, uglify()))
+          // .pipe(gulpif(/\.css$/, cssSlam()))
+          .pipe(gulpif(/\.css$/, postcss([
+            autoprefixer(),
+            cleanCSS(cssOptions)
+          ])))
+          // .pipe(gulpif(/\.html$/, htmlMinifier()))
+          .pipe(gulpif(/\.html$/, posthtml([
+            posthtmlPostcss([
+              autoprefixer(),
+              cleanCSS(cssOptions)
+            ]),
+            htmlmin({
+              collapseWhitespace: true,
+              removeComments: true
+            })
+          ])))
+          .pipe(dependenciesStreamSplitter.rejoin());
+
+        // Okay, now let's merge your sources & dependencies together into a single build stream.
+        let buildStream = mergeStream(sourcesStream, dependenciesStream)
+          .once('data', () => {
+            console.log('Analyzing build dependencies...');
+          });
+
+        // If you want bundling, pass the stream to polymerProject.bundler.
+        // This will bundle dependencies into your fragments so you can lazy
+        // load them.
+        buildStream = buildStream.pipe(polymerProject.bundler);
+
+        // Okay, time to pipe to the build directory
+        buildStream = buildStream.pipe(gulp.dest(buildDirectory));
+
+        // waitFor the buildStream to complete
+        return waitFor(buildStream);
       })
-    ]))
-    .pipe(htmlDepsFilter.restore)
-    .pipe(project.rejoin());
+      .then(() => {
+        // Okay, now let's generate the Service Worker
+        console.log('Generating the Service Worker...');
+        return polymerBuild.addServiceWorker({
+          project: polymerProject,
+          buildRoot: buildDirectory,
+          bundled: true,
+          swPrecacheConfig: swPrecacheConfig
+        });
+      })
+      .then(() => {
+        // You did it!
+        console.log('Build complete!');
+        resolve();
+      });
+  });
 }
 
-// Clean the build directory, split all source and dependency files into streams
-// and process them, and output bundled and unbundled versions of the project
-// with their own service workers
-gulp.task('default', gulp.series([
-  clean([global.config.build.rootDirectory]),
-  project.merge(source, dependencies),
-  project.serviceWorker
-]));
-
-gulp.task('war', gulp.series([
-  clean([global.config.build.rootDirectory]),
-  project.merge(source, dependencies),
-  project.serviceWorker,
-  war.create
-]));
+gulp.task('build', build);
+gulp.task('default', build);
