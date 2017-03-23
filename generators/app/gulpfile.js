@@ -15,7 +15,6 @@
 const del = require('del');
 const gulp = require('gulp');
 const gulpif = require('gulp-if');
-const imagemin = require('gulp-imagemin');
 const mergeStream = require('merge-stream');
 const polymerBuild = require('polymer-build');
 
@@ -62,11 +61,6 @@ function build() {
         // in your `src/` directory, or those that match your polymer.json
         // "sources"  property if you provided one.
         let sourcesStream = polymerProject.sources()
-
-          // If you want to optimize, minify, compile, or otherwise process
-          // any of your source code for production, you can do so here before
-          // merging your sources and dependencies together.
-          .pipe(gulpif(/\.(png|gif|jpg|svg)$/, imagemin()))
 
           // The `sourcesStreamSplitter` created above can be added here to
           // pull any inline styles and scripts out of their HTML files and
@@ -140,7 +134,7 @@ function build() {
         // If you want bundling, pass the stream to polymerProject.bundler.
         // This will bundle dependencies into your fragments so you can lazy
         // load them.
-        buildStream = buildStream.pipe(polymerProject.bundler);
+        buildStream = buildStream.pipe(polymerProject.bundler());
 
         // Okay, time to pipe to the build directory
         buildStream = buildStream.pipe(gulp.dest(buildDirectory));
