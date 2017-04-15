@@ -23,7 +23,7 @@ describe('generator-polymer-init-custom-build:app', function() {
 
   it('creates files', function() {
     assert.file([
-      '.travis.yml',
+      'browserslist',
       'gulpfile.js',
       'package.json',
       'README.md',
