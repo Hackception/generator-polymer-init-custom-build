@@ -48,7 +48,7 @@ module.exports = yeoman.Base.extend({
   },
 
   install: function() {
-    this.npmInstall([], {'depth': 0});
-    this.bowerInstall([], {'depth': 0});
+    this.npmInstall([], {depth: 0});
+    this.bowerInstall([], {depth: 0});
   },
 });
