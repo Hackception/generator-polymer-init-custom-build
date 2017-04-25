@@ -36,8 +36,8 @@ module.exports = yeoman.Base.extend({
 
     // Copy the new files
     this.fs.copy(
-      this.templatePath('gulpfile.js'),
-      this.destinationPath('gulpfile.js')
+      this.templatePath('{browserslist,gulpfile.js}'),
+      this.destinationPath()
     );
 
     // Overwrite the PSK files with new files
@@ -48,6 +48,7 @@ module.exports = yeoman.Base.extend({
   },
 
   install: function() {
-    this.installDependencies();
+    this.npmInstall([], {depth: 0});
+    this.bowerInstall([], {depth: 0});
   },
 });
