@@ -1,10 +1,16 @@
 # generator-polymer-init-custom-build
 
-[![Build Status](https://travis-ci.org/PolymerElements/generator-polymer-init-custom-build.svg?branch=master)](https://travis-ci.org/PolymerElements/generator-polymer-init-custom-build)
+[![Build Status](https://travis-ci.org/Hackception/generator-polymer-init-custom-build.svg?branch=master)](https://travis-ci.org/Hackception/generator-polymer-init-custom-build)
 
 This template is a starting point for building apps using Polymer Starter Kit
 with a custom gulp process leveraging [polymer-build](https://github.com/Polymer/polymer-build),
 the library powering [Polymer CLI](https://github.com/Polymer/polymer-cli).
+
+### Known Issues
+
+- Windows Build Issue [Polymer/polymer-build#114](https://github.com/Polymer/polymer-build/issues/114)
+- CSS not splitting properly [Polymer/polymer-build#103](https://github.com/Polymer/polymer-build/pull/103) - The temp 
+fix is to handle the CSS within the HTML using something like CssSlam or PostHTML.
 
 ### Setup
 
@@ -15,7 +21,7 @@ generator-polymer-init-custom-build using [npm](https://www.npmjs.com) (we
 assume you have pre-installed [node.js](https://nodejs.org)).
 
     npm install -g polymer-cli
-    npm install -g generator-polymer-init-custom-build
+    npm install -g Hackception/generator-polymer-init-custom-build
 
 ##### Initialize project from template
 
