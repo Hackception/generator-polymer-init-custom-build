@@ -11,12 +11,11 @@
 'use strict';
 
 const path = require('path');
-
 const yeoman = require('yeoman-generator');
 
 module.exports = yeoman.Base.extend({
-  writing: function() {
-    let pskPath = path.join(path.dirname(this.resolved), 'polymer-starter-kit');
+  writing() {
+    const pskPath = path.join(path.dirname(this.resolved), 'polymer-starter-kit');
 
     this.sourceRoot(pskPath);
 
@@ -36,8 +35,12 @@ module.exports = yeoman.Base.extend({
 
     // Copy the new files
     this.fs.copy(
-      this.templatePath('{browserslist,gulpfile.js}'),
-      this.destinationPath()
+      this.templatePath('gulpfile.js'),
+      this.destinationPath('gulpfile.js')
+    );
+    this.fs.copy(
+      this.templatePath('browserslist'),
+      this.destinationPath('browserslist')
     );
 
     // Overwrite the PSK files with new files
@@ -47,8 +50,7 @@ module.exports = yeoman.Base.extend({
     );
   },
 
-  install: function() {
-    this.npmInstall([], {depth: 0});
-    this.bowerInstall([], {depth: 0});
+  install() {
+    this.installDependencies();
   },
 });
