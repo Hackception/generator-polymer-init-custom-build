@@ -1,0 +1,4 @@
+[submodule "generators/app/polymer-starter-kit"]
+	path = generators/app/polymer-starter-kit
+	url = https://github.com/Hackception/polymer-starter-kit
+	branch = master
