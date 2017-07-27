@@ -1,13 +1,3 @@
-/**
- * @license
- * Copyright (c) 2016 The Polymer Project Authors. All rights reserved.
- * This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
- * The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
- * The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
- * Code distributed by Google as part of the polymer project is also
- * subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
- */
-
 'use strict';
 
 const path = require('path');
@@ -20,14 +10,18 @@ const gulpif = require('gulp-if');
 const mergeStream = require('merge-stream');
 const polymerBuild = require('polymer-build');
 
-// Here we add tools that will be used to process our source files.
 const babel = require('gulp-babel');
-const babelPresetES2015 = require('babel-preset-es2015');
+const babelPresetEnv = require('babel-preset-env');
 const babiliPreset = require('babel-preset-babili');
-const cssSlam = require('css-slam').gulp;
 const externalHelpersPlugin = require('babel-plugin-external-helpers');
+
+const postCss = require('gulp-postcss');
+const postHtml = require('gulp-posthtml');
+const postHtmlPostCss = require('posthtml-postcss');
+const autoprefixer = require('autoprefixer');
+const cssSlam = require('css-slam').gulp;
+
 const htmlMinifier = require('gulp-html-minifier');
-const imagemin = require('gulp-imagemin');
 
 // Build out the Polymer Project Config instance
 const polymerProject = getProjectConfig(require('./polymer.json'), getArgs());
@@ -49,68 +43,42 @@ function runBuilds() {
         return new Promise((resolve) => {
           console.log(`(${buildName}) Building...`);
 
-          // Lets create some inline code splitters in case you need them later in your build.
-          const sourcesStreamSplitter = new polymerBuild.HtmlSplitter();
-          const dependenciesStreamSplitter = new polymerBuild.HtmlSplitter();
           const htmlSplitter = new polymerBuild.HtmlSplitter();
-
-          // Let's start by getting your source files. These are all the files
-          // in your `src/` directory, or those that match your polymer.json
-          // "sources"  property if you provided one.
-          const sourcesStream = polymerBuild.forkStream(polymerProject.sources())
-          .pipe(gulpif(/\.(png|gif|jpg|svg)$/, imagemin()))
-
-          // The `sourcesStreamSplitter` created above can be added here to
-          // pull any inline styles and scripts out of their HTML files and
-          // into seperate CSS and JS files in the build stream. Just be sure
-          // to rejoin those files with the `.rejoin()` method when you're done.
-          .pipe(sourcesStreamSplitter.split())
-
-          // If you want to optimize, minify, compile, or otherwise process
-          // any of your source code for production, you can do so here before
-          // merging your sources and dependencies together.
-
-          // Remember, you need to rejoin any split inline code when you're done.
-          .pipe(sourcesStreamSplitter.rejoin());
-
-
-          // Similarly, you can get your dependencies seperately and perform
-          // any dependency-only optimizations here as well.
-          const depsStream = polymerBuild.forkStream(polymerProject.dependencies())
-            .pipe(dependenciesStreamSplitter.split())
-            // Add any dependency optimizations here.
-            .pipe(dependenciesStreamSplitter.rejoin());
-
-
-          // Okay, now let's merge your sources & dependencies together into a single build stream.
           let buildStream = mergeStream(sourcesStream, depsStream)
             .pipe(htmlSplitter.split());
 
-          // You can perform any optimizations across both sources and dependencies here.
-
-          // compile ES6 JavaScript using babel
+          // Compile ES6 JavaScript using babel w/ babel-preset-env
           if (options.js && options.js.compile) {
             buildStream = buildStream.pipe(gulpif(/^((?!(webcomponentsjs\/|webcomponentsjs\\)).)*\.js$/, babel({
-              presets: [babelPresetES2015.buildPreset({}, {modules: false})],
+              presets: [babelPresetEnv.buildPreset({}, {modules: false})],
               plugins: [externalHelpersPlugin],
             })));
           }
-
-          // minify code (minify should always be the last transform)
-          if (options.html && options.html.minify) {
-            buildStream = buildStream.pipe(gulpif(/\.html$/, htmlMinifier({
-              collapseWhitespace: true,
-              removeComments: true,
+          // Minify JS using Babili
+          if (options.js && options.js.minify) {
+            buildStream = buildStream.pipe(gulpif(/^((?!(webcomponentsjs\/|webcomponentsjs\\)).)*\.js$/, babel({
+              presets: [babiliPreset({}, {'simplifyComparisons': false})],
             })));
           }
+
+          // Prefix CSS using AutoPrefixer
+          if (options.css && options.css.prefix) {
+            buildStream = buildStream.pipe(gulpif(/\.css$/, postCss([autoprefixer()])))
+              // TODO: Remove once CSS is being properly isolated by split() and rejoin()
+              .pipe(gulpif(/\.html$/, postHtml([postHtmlPostCss([autoprefixer()])])));
+          }
+          // Minify CSS using cssSlam
           if (options.css && options.css.minify) {
             buildStream = buildStream.pipe(gulpif(/\.css$/, cssSlam({stripWhitespace: true})))
               // TODO: Remove once CSS is being properly isolated by split() and rejoin()
               .pipe(gulpif(/\.html$/, cssSlam({stripWhitespace: true})));
           }
-          if (options.js && options.js.minify) {
-            buildStream = buildStream.pipe(gulpif(/^((?!(webcomponentsjs\/|webcomponentsjs\\)).)*\.js$/, babel({
-              presets: [babiliPreset({}, {'simplifyComparisons': false})],
+
+          // Minify HTML using html-minifier
+          if (options.html && options.html.minify) {
+            buildStream = buildStream.pipe(gulpif(/\.html$/, htmlMinifier({
+              collapseWhitespace: true,
+              removeComments: true,
             })));
           }
 
